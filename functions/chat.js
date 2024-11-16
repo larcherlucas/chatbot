@@ -1,35 +1,47 @@
-import { OpenAI } from 'langchain/llms/openai';
-import dotenv from 'dotenv';
+import { ChatOpenAI } from "@langchain/openai";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
 
-dotenv.config();
-
-export const handler = async (event) => {
+export const handler = async (event, context) => {
   try {
-    // Configurez le modèle OpenAI
-    const model = new OpenAI({
-      openAIApiKey: process.env.OPENAI_API_KEY,
-      temperature: 0.7, // Ajustez la température si nécessaire
+    const body = event.body;
+
+    const history = JSON.parse(body).history;
+
+    if (!body || !history) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify("No query provided."),
+      }
+    }
+
+    const llm = new ChatOpenAI({
+      model: "gpt-3.5-turbo",
+      temperature: 0,
+      maxTokens: 4000,
     });
 
-    // Récupérez les données du corps de la requête
-    const body = JSON.parse(event.body);
-    const { prompt } = body;
-
-    // Envoyez une requête au modèle
-    const response = await model.call(prompt);
+    const aiMsg = await llm.invoke([{
+        role: "system",
+        content: "You are a helpful buddy that can assist me with my questions. Be funny, nice and engaging.",
+      },
+      ...history.map((msg) => ({
+        role: msg.role,
+        content: msg.message,
+      }))
+    ]);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        message: response,
-      }),
-    };
+      body: JSON.stringify(aiMsg.content),
+    }
   } catch (error) {
+    console.error("Error:", error);
     return {
       statusCode: 500,
       body: JSON.stringify({
         error: error.message,
+        stack: error.stack,
       }),
-    };
+    }
   }
-};
+}

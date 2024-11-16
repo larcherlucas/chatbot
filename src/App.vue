@@ -1,3 +1,7 @@
-<script setup lang="js"></script>
+<script setup lang="js">
+import ChatContainer from './components/ChatContainer.vue'
+</script>
 
-<template></template>
+<template>
+  <chat-container />
+</template>
